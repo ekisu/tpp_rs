@@ -4,11 +4,10 @@ use std::default::Default;
 use std::sync::mpsc::{channel, Receiver};
 use std::thread;
 use super::CommandInput;
-use crate::command::Command;
+use crate::command::{Button, Command};
 
 pub struct TwitchInput {
     client: IrcClient,
-    
 }
 
 impl TwitchInput {
@@ -46,10 +45,11 @@ impl CommandInput for TwitchInput {
                 println!("twitch_input: {:?}", message);
 
                 if let IrcCommand::PRIVMSG(ref _target, ref msg) = message.command {
-                    if let Some(command) = Command::from_string(msg.to_owned()) {
-                        println!("twitch_input: got {:?} command.", command);
+                    if let Some(button) = Button::from_string(msg.to_owned()) {
+                        let user = message.source_nickname().unwrap_or("unknown user").to_owned();
+                        println!("twitch_input: got {:?} button, from {}.", button, user);
 
-                        tx.send(command).unwrap();
+                        tx.send(Command { user, button }).unwrap();
                     }
                 }
             }).unwrap();

@@ -1,5 +1,5 @@
 use super::CommandOutput;
-use crate::command::Command;
+use crate::command::Button;
 
 use enigo::{Enigo, Key, KeyboardControllable};
 
@@ -19,9 +19,9 @@ trait AsKey {
     fn as_key(&self) -> Key;
 }
 
-impl AsKey for Command {
+impl AsKey for Button {
     fn as_key(&self) -> Key {
-        use Command::*;
+        use Button::*;
         
         match *self {
             Up => Key::UpArrow,
@@ -39,7 +39,7 @@ impl AsKey for Command {
 }
 
 impl CommandOutput for KeyboardOutput {
-    fn emit(&mut self, c: Command) {
+    fn emit(&mut self, c: Button) {
         self.enigo.key_click(c.as_key());
     }
 }

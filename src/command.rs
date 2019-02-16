@@ -1,5 +1,8 @@
-#[derive(Debug)]
-pub enum Command {
+extern crate serde;
+use serde::Serialize;
+
+#[derive(Debug, Serialize, Copy, Clone)]
+pub enum Button {
     Up,
     Down,
     Left,
@@ -12,9 +15,9 @@ pub enum Command {
     R
 }
 
-impl Command {
+impl Button {
     pub fn from_string(s: String) -> Option<Self> {
-        use Command::*;
+        use Button::*;
 
         match s.as_str() {
             "up" => Some(Up),
@@ -30,4 +33,10 @@ impl Command {
             _ => None
         }
     }
+}
+
+#[derive(Debug, Serialize)]
+pub struct Command {
+    pub user: String,
+    pub button: Button
 }
