@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>TPP.rs</title>
+        <script src="https://cdn.jsdelivr.net/npm/vue@2.6.6/dist/vue.js"></script>
+        <script src="/static/index.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css">
+        <link rel="stylesheet" href="/static/index.css">
+    </head>
+    <body onload="onPageLoaded()">
+        <div>
+            <table>
+                <thead>
+                    <th>User</th>
+                    <th>Button</th>
+                </thead>
+                <tbody id="last_commands">
+                    <tr v-for="command in last_commands">
+                        <td>{{ command.user }}</td>
+                        <td>{{ command.button }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </body>
+</html>
