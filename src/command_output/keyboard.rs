@@ -4,13 +4,13 @@ use crate::command::Button;
 use enigo::{Enigo, Key, KeyboardControllable};
 
 pub struct KeyboardOutput {
-    enigo: Enigo
+    enigo: Enigo,
 }
 
 impl KeyboardOutput {
     pub fn new() -> Self {
         KeyboardOutput {
-            enigo: Enigo::new()
+            enigo: Enigo::new(),
         }
     }
 }
@@ -22,7 +22,7 @@ trait AsKey {
 impl AsKey for Button {
     fn as_key(&self) -> Key {
         use Button::*;
-        
+
         match *self {
             Up => Key::UpArrow,
             Down => Key::DownArrow,
@@ -33,7 +33,7 @@ impl AsKey for Button {
             Select => Key::Space,
             Start => Key::Return,
             L => Key::Layout('l'),
-            R => Key::Layout('r')
+            R => Key::Layout('r'),
         }
     }
 }

@@ -1,5 +1,7 @@
 use super::Renderer;
 use crate::command::Command;
+use crate::vote_system::VoteSystem;
+use crate::command_input::Input;
 
 use hyper::{Body, Response, StatusCode};
 
@@ -17,11 +19,13 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Clone, StateData)]
 pub struct HTTPRenderer {
-    pub last_commands_vec: Arc<Mutex<Vec<Command>>>
+    pub last_inputs_vec: Arc<Mutex<Vec<Input>>>,
+    pub last_vote_system: Arc<Mutex<Option<VoteSystem>>>,
+    pub last_vote_system_percentage: Arc<Mutex<Option<f64>>>,
 }
 
 impl HTTPRenderer {
-    fn last_commands(state: State) -> (State, Response<Body>) {
+    fn last_inputs(state: State) -> (State, Response<Body>) {
         let response = {
             let this = HTTPRenderer::borrow_from(&state);
 
@@ -29,7 +33,22 @@ impl HTTPRenderer {
                 &state,
                 StatusCode::OK,
                 mime::APPLICATION_JSON,
-                serde_json::to_string(&*this.last_commands_vec.lock().unwrap()).unwrap(),
+                serde_json::to_string(&*this.last_inputs_vec.lock().unwrap()).unwrap(),
+            )
+        };
+
+        (state, response)
+    }
+
+    fn vote_system(state: State) -> (State, Response<Body>) {
+        let response = {
+            let this = HTTPRenderer::borrow_from(&state);
+
+            create_response(
+                &state,
+                StatusCode::OK,
+                mime::APPLICATION_JSON,
+                serde_json::to_string(&*this.last_vote_system.lock().unwrap()).unwrap(),
             )
         };
 
@@ -42,7 +61,10 @@ impl HTTPRenderer {
         let (chain, pipelines) = single_pipeline(pipeline);
 
         build_router(chain, pipelines, |route| {
-            route.get("/last_commands").to(HTTPRenderer::last_commands);
+            route.get("/last_inputs").to(HTTPRenderer::last_inputs);
+            route
+                .get("/vote_system")
+                .to(HTTPRenderer::vote_system);
 
             route.get("/").to_file("static/index.html");
             route.get("static/*").to_dir("static");
@@ -51,7 +73,9 @@ impl HTTPRenderer {
 
     pub fn new() -> Self {
         HTTPRenderer {
-            last_commands_vec: Arc::new(Mutex::new(Vec::new()))
+            last_inputs_vec: Arc::new(Mutex::new(Vec::new())),
+            last_vote_system: Arc::new(Mutex::new(None)),
+            last_vote_system_percentage: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -65,7 +89,17 @@ impl HTTPRenderer {
 }
 
 impl Renderer for HTTPRenderer {
-    fn new_command(&mut self, command: Command) {
-        self.last_commands_vec.lock().unwrap().push(command);
+    fn new_input(&mut self, input: Input) {
+        self.last_inputs_vec.lock().unwrap().push(input);
+    }
+
+    fn new_command(&mut self, cmd: Command) {}
+
+    fn new_vote_system(&mut self, vote_system: VoteSystem) {
+        *self.last_vote_system.lock().unwrap() = Some(vote_system);
+    }
+
+    fn new_vote_system_percentage(&mut self, pct: f64) {
+        *self.last_vote_system_percentage.lock().unwrap() = Some(pct);
     }
 }

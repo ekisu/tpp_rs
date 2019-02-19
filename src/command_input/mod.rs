@@ -1,8 +1,13 @@
-use std::sync::mpsc::Receiver;
 use super::command::Command;
+use serde::Serialize;
+use std::sync::mpsc::Receiver;
 
-pub trait CommandInput {
-    fn create_receiver(&self) -> Receiver<Command>;
+type User = String;
+#[derive(Debug, Serialize)]
+pub struct Input(pub Command, pub User);
+
+pub trait CommandInput: Send {
+    fn create_receiver(&self) -> Receiver<Input>;
 }
 
 pub mod twitch_input;
