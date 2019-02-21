@@ -1,26 +1,50 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>TPP.rs</title>
         <script src="https://cdn.jsdelivr.net/npm/vue@2.6.6/dist/vue.js"></script>
         <script src="/static/index.js"></script>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css">
+        <link rel="stylesheet" href="https://jenil.github.io/bulmaswatch/cyborg/bulmaswatch.min.css">
         <link rel="stylesheet" href="/static/index.css">
     </head>
     <body onload="onPageLoaded()">
-        <div id="main_container">
-            <table>
-                <thead>
-                    <th>Button</th>
-                    <th>User</th>
-                </thead>
-                <tbody id="last_inputs">
-                    <tr v-for="input in renderer_data.last_inputs">
-                        <td>{{ input[0] }}</td>
-                        <td>{{ input[1] }}</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="container has-text-centered">
+            <div class="column is-8 is-offset-2" id="main_container">
+                <p>Current vote system: {{ renderer_data.last_vote_system }}</p>
+                <p>
+                    <div class="progress-wrapper">
+                            <progress class="progress is-danger is-large" v-bind:value="renderer_data.last_vote_system_percentage | whenNull(0.5)" max="1"></progress>
+                            <p class="progress-label is-left has-text-black">Anarchy</p>
+                            <p class="progress-label is-center has-text-black">{{ renderer_data.last_vote_system_change_remaining_secs }}s</p>
+                            <p class="progress-label is-right has-text-black">Democracy</p>
+                    </div>
+                </p>
+                <table id="partial_results" v-if="renderer_data.last_vote_system == 'Democracy'">
+                    <thead>
+                        <th>Command</th>
+                        <th>Count</th>
+                    </thead>
+                    <tbody>
+                        <tr v-for="command in renderer_data.last_vote_system_partial_results">
+                            <td>{{ command[0] }}</td>
+                            <td>{{ command[1] }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <table>
+                    <thead>
+                        <th>Input</th>
+                        <th>User</th>
+                    </thead>
+                    <tbody id="last_inputs">
+                        <tr v-for="input in renderer_data.last_inputs">
+                            <td>{{ input[0] }}</td>
+                            <td>{{ input[1] }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </body>
 </html>

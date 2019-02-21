@@ -9,6 +9,11 @@ function onPageLoaded() {
                 last_vote_system_partial_results: null,
                 last_vote_system_elapsed_time: null
             }
+        },
+        filters: {
+            whenNull: function(value, or) {
+                return value !== null ? value : or;
+            }
         }
     });
 

@@ -16,3 +16,43 @@ table {
 table th {
     color: white;
 }
+
+.progress-wrapper {
+    position: relative;
+  }
+  
+  .progress-label {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    font-size: calc(1rem / 1.5);
+    line-height: 1rem;
+    font-weight: bold;
+  }
+
+  .progress-label.is-left {
+      left: 7%;
+  }
+
+  .progress-label.is-center {
+      left: 50%;
+  }
+
+  .progress-label.is-right {
+      left: 93%;
+  }
+  
+  .progress.is-small~.progress-label {
+    font-size: calc(0.75rem / 1.5);
+    line-height: 0.75rem;
+  }
+  
+  .progress.is-medium~.progress-label {
+    font-size: calc(1.25rem / 1.5);
+    line-height: 1.25rem;
+  }
+  
+  .progress.is-large~.progress-label {
+    font-size: calc(1.5rem / 1.5);
+    line-height: 1.5rem;
+  }
