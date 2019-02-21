@@ -162,7 +162,9 @@ impl Mediator {
             .send(MediatorUpdate::VoteSystemChange(system))
             .unwrap();
 
-        let vote_counter = VoteCounter::new(tx_mediator_update.clone(), VoteSystem::Anarchy);
+        // Use Democracy as a reference element when calculating vote percentage, as
+        // 0 means full Anarchy and 1, full Democracy. Helps when drawing a progress bar.
+        let vote_counter = VoteCounter::new(tx_mediator_update.clone(), VoteSystem::Democracy);
         let current_system = Arc::new(Mutex::new(system));
 
         Self::spawn_input_reader(
