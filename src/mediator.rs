@@ -12,7 +12,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 pub enum MediatedDecision {
     Command(Command),
@@ -20,6 +20,7 @@ pub enum MediatedDecision {
 
 pub enum MediatorUpdate {
     VoteSystemChange(VoteSystem),
+    VoteSystemChangeSecsRemaining(u64),
     VoteSystemPercentageChange(Option<f64>),
     VoteSystemDemocracyPartialResults(u64, Frequencies<Command>),
     Input(Input),
@@ -106,12 +107,14 @@ impl Mediator {
         vote_lock: Arc<Mutex<VoteFunction>>,
         tx_decision: VoteSystemUpdateSender,
         system_counter: VoteCounter<VoteSystem>,
+        last_vote_system_change: Arc<Mutex<Instant>>,
         tx_mediator_update: MediatorUpdateSender,
     ) {
         thread::spawn(move || loop {
             thread::sleep(Duration::from_secs(30));
 
             println!("spawn_vote_system_changer: running...");
+            *last_vote_system_change.lock().unwrap() = Instant::now();
 
             let winner = system_counter.winner();
             system_counter.reset();
@@ -128,6 +131,21 @@ impl Mediator {
         });
     }
 
+    fn spawn_vote_system_time_updater(
+        last_vote_system_change: Arc<Mutex<Instant>>,
+        tx_mediator_update: MediatorUpdateSender,
+    ) {
+        thread::spawn(move || loop {
+            thread::sleep(Duration::from_secs(1));
+
+            let time_remaining = Duration::from_secs(30) - last_vote_system_change.lock().unwrap().elapsed();
+
+            tx_mediator_update.send(
+                MediatorUpdate::VoteSystemChangeSecsRemaining(time_remaining.as_secs())
+            ).unwrap();
+        });
+    }
+
     pub fn create<I>(command_input: I, system: VoteSystem) -> MediatorUpdateReceiver
     where
         I: CommandInput + 'static,
@@ -137,6 +155,7 @@ impl Mediator {
         let (tx_mediator_update, rx_mediator_update) = channel();
 
         let vote_lock = Arc::new(Mutex::new(vote_function));
+        let last_vote_system_change = Arc::new(Mutex::new(Instant::now()));
 
         // Send initial VoteSystem update
         tx_mediator_update
@@ -158,6 +177,11 @@ impl Mediator {
             vote_lock.clone(),
             tx_decision.clone(),
             vote_counter.clone(),
+            last_vote_system_change.clone(),
+            tx_mediator_update.clone(),
+        );
+        Self::spawn_vote_system_time_updater(
+            last_vote_system_change.clone(),
             tx_mediator_update.clone(),
         );
 

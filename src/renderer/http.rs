@@ -27,7 +27,8 @@ pub struct HTTPRenderer {
     pub last_vote_system: Arc<Mutex<Option<VoteSystem>>>,
     pub last_vote_system_percentage: Arc<Mutex<Option<f64>>>,
     pub last_vote_system_partial_results: Arc<Mutex<Option<Frequencies<Command>>>>,
-    pub last_vote_system_elapsed_time: Arc<Mutex<u64>>
+    pub last_vote_system_elapsed_time: Arc<Mutex<u64>>,
+    pub last_vote_system_change_remaining_secs: Arc<Mutex<u64>>
 }
 
 #[derive(Serialize)]
@@ -36,7 +37,8 @@ struct RendererData {
     last_vote_system: Option<VoteSystem>,
     last_vote_system_percentage: Option<f64>,
     last_vote_system_partial_results: Option<Vec<(Command, u64)>>,
-    last_vote_system_elapsed_time: u64
+    last_vote_system_elapsed_time: u64,
+    last_vote_system_change_remaining_secs: u64
 }
 
 impl HTTPRenderer {
@@ -86,7 +88,8 @@ impl HTTPRenderer {
                     .unwrap()
                     .clone(),
                 last_vote_system_partial_results: partial,
-                last_vote_system_elapsed_time: *this.last_vote_system_elapsed_time.lock().unwrap()
+                last_vote_system_elapsed_time: *this.last_vote_system_elapsed_time.lock().unwrap(),
+                last_vote_system_change_remaining_secs: *this.last_vote_system_change_remaining_secs.lock().unwrap()
             };
 
             HTTPRenderer::response_json(&state, &renderer_data)
@@ -126,7 +129,8 @@ impl HTTPRenderer {
             last_vote_system: Arc::new(Mutex::new(None)),
             last_vote_system_percentage: Arc::new(Mutex::new(None)),
             last_vote_system_partial_results: Arc::new(Mutex::new(None)),
-            last_vote_system_elapsed_time: Arc::new(Mutex::new(0))
+            last_vote_system_elapsed_time: Arc::new(Mutex::new(0)),
+            last_vote_system_change_remaining_secs: Arc::new(Mutex::new(0))
         }
     }
 
@@ -157,5 +161,9 @@ impl Renderer for HTTPRenderer {
     fn new_vote_system_democracy_partial_results(&mut self, t: u64, results: Frequencies<Command>) {
         *self.last_vote_system_partial_results.lock().unwrap() = Some(results);
         *self.last_vote_system_elapsed_time.lock().unwrap() = t;
+    }
+
+    fn new_vote_system_change_secs_remaining(&mut self, t: u64) {
+        *self.last_vote_system_change_remaining_secs.lock().unwrap() = t;
     }
 }

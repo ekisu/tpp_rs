@@ -58,6 +58,10 @@ where
             .new_vote_system_democracy_partial_results(t, results);
     }
 
+    fn on_vote_system_change_secs_remaining(&mut self, t: u64) {
+        self.renderer.new_vote_system_change_secs_remaining(t);
+    }
+
     fn on_input(&mut self, input: Input) {
         println!("control: got {:?} Input", input);
         self.renderer.new_input(input);
@@ -72,6 +76,7 @@ where
                 Decision(decision) => self.on_decision(decision),
                 VoteSystemPercentageChange(p) => self.on_vote_system_percentage_change(p),
                 VoteSystemChange(system) => self.on_vote_system_change(system),
+                VoteSystemChangeSecsRemaining(secs) => self.on_vote_system_change_secs_remaining(secs),
                 VoteSystemDemocracyPartialResults(t, partial) => {
                     self.on_vote_system_partial_results(t, partial)
                 }

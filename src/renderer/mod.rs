@@ -9,6 +9,7 @@ pub trait Renderer {
     fn new_vote_system(&mut self, vote_system: VoteSystem);
     fn new_vote_system_percentage(&mut self, pct: Option<f64>);
     fn new_vote_system_democracy_partial_results(&mut self, t: u64, results: Frequencies<Command>);
+    fn new_vote_system_change_secs_remaining(&mut self, t: u64);
 }
 
 pub mod console;
