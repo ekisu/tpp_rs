@@ -8,16 +8,16 @@
         <link rel="stylesheet" href="/static/index.css">
     </head>
     <body onload="onPageLoaded()">
-        <div>
+        <div id="main_container">
             <table>
                 <thead>
-                    <th>User</th>
                     <th>Button</th>
+                    <th>User</th>
                 </thead>
-                <tbody id="last_commands">
-                    <tr v-for="command in last_commands">
-                        <td>{{ command.user }}</td>
-                        <td>{{ command.button }}</td>
+                <tbody id="last_inputs">
+                    <tr v-for="input in renderer_data.last_inputs">
+                        <td>{{ input[0] }}</td>
+                        <td>{{ input[1] }}</td>
                     </tr>
                 </tbody>
             </table>

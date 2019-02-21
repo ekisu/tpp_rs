@@ -37,6 +37,7 @@ impl Button {
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq, Hash, Clone)]
+#[serde(untagged)]
 pub enum Command {
     ChangeVoteSystem(VoteSystem),
     Action(Button),

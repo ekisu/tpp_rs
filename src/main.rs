@@ -22,6 +22,7 @@ mod vote_system;
 use vote_system::VoteSystem;
 
 mod mediator;
+mod vote_counter;
 use mediator::Mediator;
 
 mod control;

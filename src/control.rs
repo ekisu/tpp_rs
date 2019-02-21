@@ -1,8 +1,10 @@
 use crate::command::Command;
+use crate::command_input::Input;
 use crate::command_output::CommandOutput;
-use crate::vote_system::VoteSystem;
 use crate::mediator::{MediatedDecision, MediatorUpdate, MediatorUpdateReceiver};
 use crate::renderer::Renderer;
+use crate::vote_system::VoteSystem;
+use stats::Frequencies;
 
 pub struct Control<O: CommandOutput, R: Renderer> {
     rx_update: MediatorUpdateReceiver,
@@ -31,15 +33,18 @@ where
                     self.output.emit(button);
                     self.renderer.new_command(cmd);
                 }
-                _ => {
-                    println!("uhh");
+                x => {
+                    unreachable!(format!(
+                        "on_decision: decision should always be a Command, but it was {:?}",
+                        x
+                    ));
                 }
-            }
+            },
         }
     }
 
-    fn on_vote_system_percentage_change(&mut self, pct: f64) {
-        println!("control: got {} VoteSystemPercentageChange", pct);
+    fn on_vote_system_percentage_change(&mut self, pct: Option<f64>) {
+        println!("control: got {:?} VoteSystemPercentageChange", pct);
         self.renderer.new_vote_system_percentage(pct);
     }
 
@@ -48,13 +53,29 @@ where
         self.renderer.new_vote_system(system);
     }
 
+    fn on_vote_system_partial_results(&mut self, t: u64, results: Frequencies<Command>) {
+        self.renderer
+            .new_vote_system_democracy_partial_results(t, results);
+    }
+
+    fn on_input(&mut self, input: Input) {
+        println!("control: got {:?} Input", input);
+        self.renderer.new_input(input);
+    }
+
     pub fn run(&mut self) {
         loop {
+            use crate::mediator::MediatorUpdate::*;
+
             let update = self.rx_update.recv().unwrap();
             match update {
-                MediatorUpdate::Decision(decision) => self.on_decision(decision),
-                MediatorUpdate::VoteSystemPercentageChange(p) => self.on_vote_system_percentage_change(p),
-                MediatorUpdate::VoteSystemChange(system) => self.on_vote_system_change(system)
+                Decision(decision) => self.on_decision(decision),
+                VoteSystemPercentageChange(p) => self.on_vote_system_percentage_change(p),
+                VoteSystemChange(system) => self.on_vote_system_change(system),
+                VoteSystemDemocracyPartialResults(t, partial) => {
+                    self.on_vote_system_partial_results(t, partial)
+                }
+                Input(input) => self.on_input(input),
             }
         }
     }

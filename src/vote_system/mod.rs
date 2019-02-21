@@ -1,14 +1,25 @@
 use serde::Serialize;
 
 use crate::command::Command;
-use std::sync::mpsc::{Sender, Receiver};
+use stats::Frequencies;
+use std::sync::mpsc::{Receiver, Sender};
 
-pub type VoteFunction = Box<Fn(Command) -> () + Send>;
-pub type DecisionReceiver = Receiver<Command>;
-pub type DecisionSender = Sender<Command>;
+pub trait Vote : Send {
+    fn call(&self, c: Command);
+}
+
+pub type VoteFunction = Box<Vote>;
+
+pub enum VoteSystemUpdate {
+    Decision(Command),
+    DemocracyPartialResults(u64, Frequencies<Command>),
+}
+
+pub type VoteSystemUpdateReceiver = Receiver<VoteSystemUpdate>;
+pub type VoteSystemUpdateSender = Sender<VoteSystemUpdate>;
 
 pub trait VoteSystemCreator {
-    fn create(&self, d: DecisionSender) -> VoteFunction;
+    fn create(&self, d: VoteSystemUpdateSender) -> VoteFunction;
 }
 
 pub mod anarchy;

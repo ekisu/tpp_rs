@@ -3,7 +3,7 @@ use serde::Serialize;
 use std::sync::mpsc::Receiver;
 
 type User = String;
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct Input(pub Command, pub User);
 
 pub trait CommandInput: Send {

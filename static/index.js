@@ -1,16 +1,22 @@
 function onPageLoaded() {
     var app = new Vue({
-        el: "#last_commands",
+        el: "#main_container",
         data: {
-            last_commands: []
+            renderer_data: {
+                last_inputs: [],
+                last_vote_system: null,
+                last_vote_system_percentage: null,
+                last_vote_system_partial_results: null,
+                last_vote_system_elapsed_time: null
+            }
         }
     });
 
-    const updateLastCommands = async () => {
-        let resp = await fetch("/last_commands");
+    const updateData = async () => {
+        let resp = await fetch("/data");
 
-        app.last_commands = await resp.json();
+        app.renderer_data = await resp.json();
     }
 
-    setInterval(updateLastCommands, 1000);
+    setInterval(updateData, 1000);
 }

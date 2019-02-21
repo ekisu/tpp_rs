@@ -2,7 +2,12 @@ use serde::Serialize;
 
 use crate::command::{Button, Command};
 use crate::command_input::{CommandInput, Input};
-use crate::vote_system::{DecisionSender, DecisionReceiver, VoteFunction, VoteSystem, VoteSystemCreator};
+use crate::vote_counter::VoteCounter;
+use crate::vote_system::{
+    VoteFunction, VoteSystem, VoteSystemCreator, VoteSystemUpdateReceiver, VoteSystemUpdateSender,
+};
+
+use stats::Frequencies;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
@@ -15,8 +20,10 @@ pub enum MediatedDecision {
 
 pub enum MediatorUpdate {
     VoteSystemChange(VoteSystem),
-    VoteSystemPercentageChange(f64),
-    Decision(MediatedDecision)
+    VoteSystemPercentageChange(Option<f64>),
+    VoteSystemDemocracyPartialResults(u64, Frequencies<Command>),
+    Input(Input),
+    Decision(MediatedDecision),
 }
 
 pub type MediatorUpdateSender = Sender<MediatorUpdate>;
@@ -28,8 +35,7 @@ impl Mediator {
     fn spawn_input_reader<I>(
         command_input: I,
         vote_lock: Arc<Mutex<VoteFunction>>,
-        anarchy_counter: Arc<AtomicUsize>,
-        democracy_counter: Arc<AtomicUsize>,
+        system_counter: VoteCounter<VoteSystem>,
         tx_update: MediatorUpdateSender,
     ) where
         I: CommandInput + 'static,
@@ -38,48 +44,45 @@ impl Mediator {
             let rx_input = command_input.create_receiver();
 
             loop {
-                let Input(cmd, user) = rx_input.recv().unwrap();
+                let input = rx_input.recv().unwrap();
+                tx_update
+                    .send(MediatorUpdate::Input(input.clone()))
+                    .unwrap();
+
+                let Input(cmd, user) = input;
+
                 if let Command::ChangeVoteSystem(system) = cmd {
-                    match system {
-                        VoteSystem::Anarchy => &anarchy_counter,
-                        VoteSystem::Democracy => &democracy_counter,
-                    }
-                    .fetch_add(1, Ordering::SeqCst);
-
-                    let anarchy_votes = anarchy_counter.load(Ordering::SeqCst);
-                    let democracy_votes = democracy_counter.load(Ordering::SeqCst);
-
-                    // Maybe we shouldn't send updates here?
-                    tx_update
-                        .send(MediatorUpdate::VoteSystemPercentageChange(
-                            democracy_votes as f64 / (anarchy_votes + democracy_votes) as f64,
-                        ))
-                        .unwrap();
+                    system_counter.vote(system);
                 } else {
-                    let mut _guard = vote_lock.lock().unwrap();
-
-                    (_guard)(cmd);
+                    vote_lock.lock().unwrap().call(cmd);
                 }
             }
         });
     }
 
-    fn spawn_decision_receiver(
-        rx_decision: DecisionReceiver,
+    fn spawn_vote_system_update_receiver(
+        rx_vote_system_update: VoteSystemUpdateReceiver,
         tx_mediator_update: MediatorUpdateSender,
     ) {
         thread::spawn(move || {
+            use crate::vote_system::VoteSystemUpdate as VSU;
             use MediatedDecision::*;
+            use MediatorUpdate as MU;
 
             loop {
-                match rx_decision.recv() {
-                    Ok(vote) => {
-                        tx_mediator_update
-                            .send(MediatorUpdate::Decision(Command(vote)))
-                            .unwrap();
-                    },
+                match rx_vote_system_update.recv() {
+                    Ok(update) => {
+                        let med_update = match update {
+                            VSU::Decision(cmd) => MU::Decision(Command(cmd)),
+                            VSU::DemocracyPartialResults(t, part) => {
+                                MU::VoteSystemDemocracyPartialResults(t, part)
+                            }
+                        };
+
+                        tx_mediator_update.send(med_update).unwrap();
+                    }
                     Err(e) => {
-                        println!("Mediator::spawn_decision_receiver: got {} err", e);
+                        println!("Mediator::vote_system_update: got {} err", e);
                     }
                 }
             }
@@ -87,45 +90,40 @@ impl Mediator {
     }
 
     fn swap_vote_system(
+        current_system: &Arc<Mutex<VoteSystem>>,
         vote_lock: &Arc<Mutex<VoteFunction>>,
-        tx_decision: DecisionSender,
+        tx_decision: VoteSystemUpdateSender,
         new_vote_system: VoteSystem,
     ) {
         let vote_fn = new_vote_system.creator().create(tx_decision);
 
         *vote_lock.lock().unwrap() = vote_fn;
+        *current_system.lock().unwrap() = new_vote_system;
     }
 
     fn spawn_vote_system_changer(
         current_system: Arc<Mutex<VoteSystem>>,
         vote_lock: Arc<Mutex<VoteFunction>>,
-        tx_decision: DecisionSender,
-        anarchy_counter: Arc<AtomicUsize>,
-        democracy_counter: Arc<AtomicUsize>,
-        tx_mediator_update: MediatorUpdateSender
+        tx_decision: VoteSystemUpdateSender,
+        system_counter: VoteCounter<VoteSystem>,
+        tx_mediator_update: MediatorUpdateSender,
     ) {
         thread::spawn(move || loop {
             thread::sleep(Duration::from_secs(30));
 
             println!("spawn_vote_system_changer: running...");
 
-            let anarchy_votes = anarchy_counter.swap(0, Ordering::SeqCst);
-            let democracy_votes = democracy_counter.swap(0, Ordering::SeqCst);
+            let winner = system_counter.winner();
+            system_counter.reset();
 
-            if anarchy_votes > democracy_votes
-                && *current_system.lock().unwrap() == VoteSystem::Democracy {
-                Self::swap_vote_system(&vote_lock, tx_decision.clone(), VoteSystem::Anarchy);
+            if let Some(system) = winner {
+                if *current_system.lock().unwrap() != system {
+                    Self::swap_vote_system(&current_system, &vote_lock, tx_decision.clone(), system);
 
-                tx_mediator_update.send(MediatorUpdate::VoteSystemChange(
-                    VoteSystem::Anarchy
-                )).unwrap();
-            } else if democracy_votes > anarchy_votes
-                && *current_system.lock().unwrap() == VoteSystem::Anarchy {
-                Self::swap_vote_system(&vote_lock, tx_decision.clone(), VoteSystem::Democracy);
-
-                tx_mediator_update.send(MediatorUpdate::VoteSystemChange(
-                    VoteSystem::Democracy
-                )).unwrap();
+                    tx_mediator_update
+                        .send(MediatorUpdate::VoteSystemChange(system))
+                        .unwrap();
+                }
             }
         });
     }
@@ -134,37 +132,33 @@ impl Mediator {
     where
         I: CommandInput + 'static,
     {
-        let (tx_decision, rx_decision) = channel();
+        let (tx_decision, rx_vote_system_update) = channel();
         let vote_function = system.creator().create(tx_decision.clone());
         let (tx_mediator_update, rx_mediator_update) = channel();
 
         let vote_lock = Arc::new(Mutex::new(vote_function));
 
         // Send initial VoteSystem update
-        tx_mediator_update.send(MediatorUpdate::VoteSystemChange(
-            system
-        )).unwrap();
+        tx_mediator_update
+            .send(MediatorUpdate::VoteSystemChange(system))
+            .unwrap();
 
-        let anarchy_vote_counter = Arc::new(AtomicUsize::new(0));
-        let democracy_vote_counter = Arc::new(AtomicUsize::new(0));
-
+        let vote_counter = VoteCounter::new(tx_mediator_update.clone(), VoteSystem::Anarchy);
         let current_system = Arc::new(Mutex::new(system));
 
         Self::spawn_input_reader(
             command_input,
             vote_lock.clone(),
-            anarchy_vote_counter.clone(),
-            democracy_vote_counter.clone(),
+            vote_counter.clone(),
             tx_mediator_update.clone(),
         );
-        Self::spawn_decision_receiver(rx_decision, tx_mediator_update.clone());
+        Self::spawn_vote_system_update_receiver(rx_vote_system_update, tx_mediator_update.clone());
         Self::spawn_vote_system_changer(
             current_system.clone(),
             vote_lock.clone(),
             tx_decision.clone(),
-            anarchy_vote_counter.clone(),
-            democracy_vote_counter.clone(),
-            tx_mediator_update.clone()
+            vote_counter.clone(),
+            tx_mediator_update.clone(),
         );
 
         rx_mediator_update
