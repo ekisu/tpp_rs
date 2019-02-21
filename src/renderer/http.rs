@@ -16,6 +16,7 @@ use gotham::router::builder::*;
 use gotham::router::Router;
 use gotham::state::{FromState, State};
 use std::thread;
+use std::collections::vec_deque::VecDeque;
 
 use std::sync::{Arc, Mutex};
 
@@ -23,7 +24,7 @@ use stats::Frequencies;
 
 #[derive(Clone, StateData)]
 pub struct HTTPRenderer {
-    pub last_inputs_vec: Arc<Mutex<Vec<Input>>>,
+    pub last_inputs_vec: Arc<Mutex<VecDeque<Input>>>,
     pub last_vote_system: Arc<Mutex<Option<VoteSystem>>>,
     pub last_vote_system_percentage: Arc<Mutex<Option<f64>>>,
     pub last_vote_system_partial_results: Arc<Mutex<Option<Frequencies<Command>>>>,
@@ -33,7 +34,7 @@ pub struct HTTPRenderer {
 
 #[derive(Serialize)]
 struct RendererData {
-    last_inputs: Vec<Input>,
+    last_inputs: VecDeque<Input>,
     last_vote_system: Option<VoteSystem>,
     last_vote_system_percentage: Option<f64>,
     last_vote_system_partial_results: Option<Vec<(Command, u64)>>,
@@ -125,7 +126,7 @@ impl HTTPRenderer {
 
     pub fn new() -> Self {
         HTTPRenderer {
-            last_inputs_vec: Arc::new(Mutex::new(Vec::new())),
+            last_inputs_vec: Arc::new(Mutex::new(VecDeque::new())),
             last_vote_system: Arc::new(Mutex::new(None)),
             last_vote_system_percentage: Arc::new(Mutex::new(None)),
             last_vote_system_partial_results: Arc::new(Mutex::new(None)),
@@ -145,7 +146,9 @@ impl HTTPRenderer {
 
 impl Renderer for HTTPRenderer {
     fn new_input(&mut self, input: Input) {
-        self.last_inputs_vec.lock().unwrap().push(input);
+        let mut _vec = self.last_inputs_vec.lock().unwrap();
+        _vec.push_front(input);
+        _vec.truncate(20); 
     }
 
     fn new_command(&mut self, cmd: Command) {}
