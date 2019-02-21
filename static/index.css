@@ -31,7 +31,7 @@ table th {
   }
 
   .progress-label.is-left {
-      left: 7%;
+      left: 2.5rem;
   }
 
   .progress-label.is-center {
@@ -39,7 +39,7 @@ table th {
   }
 
   .progress-label.is-right {
-      left: 93%;
+      left: calc(100% - 3.5rem);
   }
   
   .progress.is-small~.progress-label {
@@ -56,3 +56,8 @@ table th {
     font-size: calc(1.5rem / 1.5);
     line-height: 1.5rem;
   }
+
+.no-vertical-padding {
+    padding-top: 0;
+    padding-bottom: 0;
+}

@@ -9,42 +9,60 @@
         <link rel="stylesheet" href="/static/index.css">
     </head>
     <body onload="onPageLoaded()">
-        <div class="container has-text-centered">
-            <div class="column is-8 is-offset-2" id="main_container">
-                <p>Current vote system: {{ renderer_data.last_vote_system }}</p>
+        <section class="section no-vertical-padding" id="main_container">
+            <div class="content has-text-centered">
                 <p>
-                    <div class="progress-wrapper">
-                            <progress class="progress is-danger is-large" v-bind:value="renderer_data.last_vote_system_percentage | whenNull(0.5)" max="1"></progress>
-                            <p class="progress-label is-left has-text-black">Anarchy</p>
-                            <p class="progress-label is-center has-text-black">{{ renderer_data.last_vote_system_change_remaining_secs }}s</p>
-                            <p class="progress-label is-right has-text-black">Democracy</p>
+                    <div class="container">
+                        <p>Current vote system: {{ renderer_data.last_vote_system }}</p>
+                        <p>
+                            <div class="progress-wrapper">
+                                    <progress class="progress is-danger is-large" v-bind:value="renderer_data.last_vote_system_percentage | whenNull(0.5)" max="1"></progress>
+                                    <p class="progress-label is-left has-text-black">Anarchy</p>
+                                    <p class="progress-label is-center has-text-black">{{ renderer_data.last_vote_system_change_remaining_secs }}s</p>
+                                    <p class="progress-label is-right has-text-black">Democracy</p>
+                            </div>
+                        </p>
                     </div>
                 </p>
-                <table id="partial_results" v-if="renderer_data.last_vote_system == 'Democracy'">
-                    <thead>
-                        <th>Command</th>
-                        <th>Count</th>
-                    </thead>
-                    <tbody>
-                        <tr v-for="command in renderer_data.last_vote_system_partial_results">
-                            <td>{{ command[0] }}</td>
-                            <td>{{ command[1] }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <table>
-                    <thead>
-                        <th>Input</th>
-                        <th>User</th>
-                    </thead>
-                    <tbody id="last_inputs">
-                        <tr v-for="input in renderer_data.last_inputs">
-                            <td>{{ input[0] }}</td>
-                            <td>{{ input[1] }}</td>
-                        </tr>
-                    </tbody>
-                </table>
+
+                <p>
+                    <div id="partial_results" class="container" v-if="renderer_data.last_vote_system == 'Democracy'">
+                        <h4 class="subtitle">Democracy partial results ({{ renderer_data.last_vote_system_elapsed_time }}s remaining)</h2>
+                        <table class="is-fullwidth" v-if="renderer_data.last_vote_system_partial_results.length">
+                            <thead>
+                                <th>Command</th>
+                                <th>Count</th>
+                            </thead>
+                            <tbody>
+                                <tr v-for="command in renderer_data.last_vote_system_partial_results">
+                                    <td>{{ command[0] }}</td>
+                                    <td>{{ command[1] }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p v-else>No votes yet.</p>
+                    </div>
+                </p>
+                
+                <p>
+                    <div id="last_inputs" class="container">
+                        <h4 class="subtitle">Last inputs</h4>
+                        <table class="is-fullwidth" v-if="renderer_data.last_inputs.length">
+                            <thead>
+                                <th>Input</th>
+                                <th>User</th>
+                            </thead>
+                            <tbody>
+                                <tr v-for="input in renderer_data.last_inputs">
+                                    <td>{{ input[0] }}</td>
+                                    <td>{{ input[1] }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p v-else>No inputs yet.</p>
+                    </div>
+                </p>
             </div>
-        </div>
+        </section>
     </body>
 </html>
