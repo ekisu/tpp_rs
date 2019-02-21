@@ -34,7 +34,7 @@
                                 <th>Count</th>
                             </thead>
                             <tbody>
-                                <tr v-for="command in renderer_data.last_vote_system_partial_results">
+                                <tr v-for="command in renderer_data.last_vote_system_partial_results.slice(0, 3)">
                                     <td>{{ command[0] }}</td>
                                     <td>{{ command[1] }}</td>
                                 </tr>
