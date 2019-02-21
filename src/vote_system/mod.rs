@@ -4,7 +4,7 @@ use crate::command::Command;
 use stats::Frequencies;
 use std::sync::mpsc::{Receiver, Sender};
 
-pub trait Vote : Send {
+pub trait Vote: Send {
     fn call(&self, c: Command);
 }
 

@@ -121,7 +121,12 @@ impl Mediator {
 
             if let Some(system) = winner {
                 if *current_system.lock().unwrap() != system {
-                    Self::swap_vote_system(&current_system, &vote_lock, tx_decision.clone(), system);
+                    Self::swap_vote_system(
+                        &current_system,
+                        &vote_lock,
+                        tx_decision.clone(),
+                        system,
+                    );
 
                     tx_mediator_update
                         .send(MediatorUpdate::VoteSystemChange(system))
@@ -138,11 +143,14 @@ impl Mediator {
         thread::spawn(move || loop {
             thread::sleep(Duration::from_secs(1));
 
-            let time_remaining = Duration::from_secs(30) - last_vote_system_change.lock().unwrap().elapsed();
+            let time_remaining =
+                Duration::from_secs(30) - last_vote_system_change.lock().unwrap().elapsed();
 
-            tx_mediator_update.send(
-                MediatorUpdate::VoteSystemChangeSecsRemaining(time_remaining.as_secs())
-            ).unwrap();
+            tx_mediator_update
+                .send(MediatorUpdate::VoteSystemChangeSecsRemaining(
+                    time_remaining.as_secs(),
+                ))
+                .unwrap();
         });
     }
 

@@ -2,12 +2,14 @@ use super::{Vote, VoteFunction, VoteSystemCreator, VoteSystemUpdate, VoteSystemU
 use crate::command::Command;
 
 struct _Anarchy {
-    tx_decision: VoteSystemUpdateSender
+    tx_decision: VoteSystemUpdateSender,
 }
 
 impl Vote for _Anarchy {
     fn call(&self, c: Command) {
-        self.tx_decision.send(VoteSystemUpdate::Decision(c)).unwrap();
+        self.tx_decision
+            .send(VoteSystemUpdate::Decision(c))
+            .unwrap();
     }
 }
 

@@ -2,9 +2,9 @@ use super::{Vote, VoteFunction, VoteSystemCreator, VoteSystemUpdate, VoteSystemU
 use crate::command::Command;
 
 use stats::Frequencies;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
@@ -14,7 +14,7 @@ struct _Democracy {
     tx_decision: VoteSystemUpdateSender,
     vote_map: Arc<Mutex<Frequencies<Command>>>,
     last_decision: Arc<Mutex<Instant>>,
-    handles: Vec<Option<JoinHandle<()>>>
+    handles: Vec<Option<JoinHandle<()>>>,
 }
 
 impl _Democracy {
@@ -22,7 +22,7 @@ impl _Democracy {
         stop_flag: Arc<AtomicBool>,
         tx_decision: VoteSystemUpdateSender,
         vote_map: Arc<Mutex<Frequencies<Command>>>,
-        last_decision: Arc<Mutex<Instant>>
+        last_decision: Arc<Mutex<Instant>>,
     ) -> JoinHandle<()> {
         thread::spawn(move || loop {
             thread::park_timeout(Duration::from_secs(30));
@@ -54,7 +54,7 @@ impl _Democracy {
         stop_flag: Arc<AtomicBool>,
         tx_decision: VoteSystemUpdateSender,
         vote_map: Arc<Mutex<Frequencies<Command>>>,
-        last_decision: Arc<Mutex<Instant>>
+        last_decision: Arc<Mutex<Instant>>,
     ) -> JoinHandle<()> {
         thread::spawn(move || {
             loop {
@@ -66,11 +66,15 @@ impl _Democracy {
 
                 let mut _vote = vote_map.lock().unwrap();
 
-                let time_remaining = Duration::from_secs(30) - last_decision.lock().unwrap().elapsed();
+                let time_remaining =
+                    Duration::from_secs(30) - last_decision.lock().unwrap().elapsed();
 
                 // ye
                 tx_decision
-                    .send(VoteSystemUpdate::DemocracyPartialResults(time_remaining.as_secs(), _vote.clone()))
+                    .send(VoteSystemUpdate::DemocracyPartialResults(
+                        time_remaining.as_secs(),
+                        _vote.clone(),
+                    ))
                     .unwrap();
             }
         })
@@ -82,11 +86,25 @@ impl _Democracy {
         let stop_flag = Arc::new(AtomicBool::new(false));
         let mut handles = Vec::new();
 
-        handles.push(Some(Self::spawn_vote_counter(stop_flag.clone(), tx_decision.clone(), vote_map.clone(), last_decision.clone())));
-        handles.push(Some(Self::spawn_partial_results_sender(stop_flag.clone(), tx_decision.clone(), vote_map.clone(), last_decision.clone())));
+        handles.push(Some(Self::spawn_vote_counter(
+            stop_flag.clone(),
+            tx_decision.clone(),
+            vote_map.clone(),
+            last_decision.clone(),
+        )));
+        handles.push(Some(Self::spawn_partial_results_sender(
+            stop_flag.clone(),
+            tx_decision.clone(),
+            vote_map.clone(),
+            last_decision.clone(),
+        )));
 
         Self {
-            stop_flag, tx_decision, vote_map, last_decision, handles
+            stop_flag,
+            tx_decision,
+            vote_map,
+            last_decision,
+            handles,
         }
     }
 }
@@ -100,7 +118,10 @@ impl Vote for _Democracy {
 
         // ye
         self.tx_decision
-            .send(VoteSystemUpdate::DemocracyPartialResults(time_remaining.as_secs(), _vote.clone()))
+            .send(VoteSystemUpdate::DemocracyPartialResults(
+                time_remaining.as_secs(),
+                _vote.clone(),
+            ))
             .unwrap();
     }
 }

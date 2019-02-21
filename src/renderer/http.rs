@@ -15,8 +15,8 @@ use gotham::pipeline::single_middleware;
 use gotham::router::builder::*;
 use gotham::router::Router;
 use gotham::state::{FromState, State};
-use std::thread;
 use std::collections::vec_deque::VecDeque;
+use std::thread;
 
 use std::sync::{Arc, Mutex};
 
@@ -29,7 +29,7 @@ pub struct HTTPRenderer {
     pub last_vote_system_percentage: Arc<Mutex<Option<f64>>>,
     pub last_vote_system_partial_results: Arc<Mutex<Option<Frequencies<Command>>>>,
     pub last_vote_system_elapsed_time: Arc<Mutex<u64>>,
-    pub last_vote_system_change_remaining_secs: Arc<Mutex<u64>>
+    pub last_vote_system_change_remaining_secs: Arc<Mutex<u64>>,
 }
 
 #[derive(Serialize)]
@@ -39,7 +39,7 @@ struct RendererData {
     last_vote_system_percentage: Option<f64>,
     last_vote_system_partial_results: Option<Vec<(Command, u64)>>,
     last_vote_system_elapsed_time: u64,
-    last_vote_system_change_remaining_secs: u64
+    last_vote_system_change_remaining_secs: u64,
 }
 
 impl HTTPRenderer {
@@ -68,17 +68,13 @@ impl HTTPRenderer {
     fn data(state: State) -> (State, Response<Body>) {
         let response = {
             let this = HTTPRenderer::borrow_from(&state);
-            let mut _results = this.last_vote_system_partial_results
-                .lock()
-                .unwrap();
-            let partial = _results
-                .clone()
-                .map(|f| {
-                    f.most_frequent()
-                        .iter()
-                        .map(|&(k, v)| (k.clone(), v))
-                        .collect()
-                });
+            let mut _results = this.last_vote_system_partial_results.lock().unwrap();
+            let partial = _results.clone().map(|f| {
+                f.most_frequent()
+                    .iter()
+                    .map(|&(k, v)| (k.clone(), v))
+                    .collect()
+            });
 
             let renderer_data = RendererData {
                 last_inputs: this.last_inputs_vec.lock().unwrap().clone(),
@@ -90,7 +86,10 @@ impl HTTPRenderer {
                     .clone(),
                 last_vote_system_partial_results: partial,
                 last_vote_system_elapsed_time: *this.last_vote_system_elapsed_time.lock().unwrap(),
-                last_vote_system_change_remaining_secs: *this.last_vote_system_change_remaining_secs.lock().unwrap()
+                last_vote_system_change_remaining_secs: *this
+                    .last_vote_system_change_remaining_secs
+                    .lock()
+                    .unwrap(),
             };
 
             HTTPRenderer::response_json(&state, &renderer_data)
@@ -131,7 +130,7 @@ impl HTTPRenderer {
             last_vote_system_percentage: Arc::new(Mutex::new(None)),
             last_vote_system_partial_results: Arc::new(Mutex::new(None)),
             last_vote_system_elapsed_time: Arc::new(Mutex::new(0)),
-            last_vote_system_change_remaining_secs: Arc::new(Mutex::new(0))
+            last_vote_system_change_remaining_secs: Arc::new(Mutex::new(0)),
         }
     }
 
@@ -148,7 +147,7 @@ impl Renderer for HTTPRenderer {
     fn new_input(&mut self, input: Input) {
         let mut _vec = self.last_inputs_vec.lock().unwrap();
         _vec.push_front(input);
-        _vec.truncate(20); 
+        _vec.truncate(20);
     }
 
     fn new_command(&mut self, cmd: Command) {}
