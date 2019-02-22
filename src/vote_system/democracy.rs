@@ -67,7 +67,9 @@ impl _Democracy {
                 let mut _vote = vote_map.lock().unwrap();
 
                 let time_remaining =
-                    Duration::from_secs(30) - last_decision.lock().unwrap().elapsed();
+                    Duration::from_secs(30)
+                    .checked_sub(last_decision.lock().unwrap().elapsed())
+                    .unwrap_or(Duration::from_secs(0));
 
                 // ye
                 tx_decision
@@ -114,7 +116,10 @@ impl Vote for _Democracy {
         let mut _vote = self.vote_map.lock().unwrap();
         _vote.add(c);
 
-        let time_remaining = Duration::from_secs(30) - self.last_decision.lock().unwrap().elapsed();
+        // Sometimes elapsed() can be >30s.
+        let time_remaining = Duration::from_secs(30)
+            .checked_sub(self.last_decision.lock().unwrap().elapsed())
+            .unwrap_or(Duration::from_secs(0));
 
         // ye
         self.tx_decision

@@ -143,8 +143,11 @@ impl Mediator {
         thread::spawn(move || loop {
             thread::sleep(Duration::from_secs(1));
 
+            // Sometimes elapsed() can be >30s.
             let time_remaining =
-                Duration::from_secs(30) - last_vote_system_change.lock().unwrap().elapsed();
+                Duration::from_secs(30)
+                .checked_sub(last_vote_system_change.lock().unwrap().elapsed())
+                .unwrap_or(Duration::from_secs(0));
 
             tx_mediator_update
                 .send(MediatorUpdate::VoteSystemChangeSecsRemaining(
